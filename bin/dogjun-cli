@@ -1,0 +1,84 @@
+#!/usr/bin/env node 
+const figlet = require('figlet')
+const Printer = require('@darkobits/lolcatjs')
+const txt = figlet.textSync("DOGJUN CLI")
+const program = require('commander')
+const inquirer = require('inquirer')
+const chalk = require('chalk')
+const json2ts = require('json2ts')
+const ora = require('ora')
+const shell = require('shelljs')
+const download = require('download-git-repo')
+const templateUrl = 'direct:https://github.com/DogJun/dogjun-vue-ssr-cli.git'
+program.version(Printer.default.fromString(txt), '-v,--version')
+// TODO: 注释打开会失效
+// program.option('init', '🐶 初始化项目')
+// program.option('json2ts', '🏆 json生成ts')
+const bindHandler = {
+  init () {
+    inquirer
+      .prompt([
+        {
+          type: 'text',
+          message: '📃 请输入文件夹的名称',
+          name: 'dirname'
+        },
+        {
+          type: 'list',
+          name: 'jskind',
+          message: '👷 请使用项目使用语言',
+          choices: ['ES6', 'Typescript']
+        }
+      ])
+      .then((answers) => {
+        const _dirname = answers.dirname;
+        if (_dirname) {
+          const spinner = ora('⏰ download template...')
+          spinner.start()
+          const _pwd = shell.pwd().stdout
+          const _projectPath = `${_pwd}/${_dirname}`
+          shell.cd(_pwd)
+          shell.rm('-rf', _projectPath)
+          shell.mkdir(_dirname)
+          download(templateUrl, _projectPath, {clone: true,}, err => {
+            spinner.stop()
+            if (err) {
+              console.error(`模版下载失败${err.message}`)
+            } else {
+              shell.sed('-i', 'myblog', _dirname, _projectPath + '/package.json')
+            }
+          })
+        }
+      })
+  },
+  json2ts (jsonUrl) {
+    const spinner = ora('⏰ 正在帮爷生成代码中，请稍后...')
+    spinner.start()
+    console.log('请求地址', jsonUrl)
+    const json = {
+      code: 1,
+      data: [
+        { 
+          num: 1
+        },
+        { 
+          info: {
+            name: 'DogJun'
+          }
+        }
+      ]
+    }
+  }
+}
+program.usage('<cmd> [env]')
+  .arguments('<cmd> [env]')
+  .action(function (cmd, otherParams) {
+    const handler = bindHandler[cmd]
+    if (handler) {
+      handler(otherParams)
+    } else {
+      console.log(`${chalk.yellow('🙏 非常遗憾')}【${chalk.red(cmd)}】${chalk.yellow('暂不支持')}`)
+    }
+  })
+program.parse(process.argv)
+
